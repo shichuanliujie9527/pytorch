@@ -25,7 +25,7 @@ from torch.distributed.checkpoint._extension import ZStandard
 from torch.distributed.checkpoint.default_planner import DefaultSavePlanner
 from torch.testing._internal.common_distributed import (
     requires_accelerator_dist_backend,
-    skip_if_lt_x_gpu,
+    skip_if_lt_x_devices,
 )
 from torch.testing._internal.common_utils import (
     instantiate_parametrized_tests,
@@ -172,7 +172,7 @@ class TestDistributedStateDictSaveLoadWithSharedTensor(ShardedTensorTestBase):
         return 2
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     @parametrize("extensions", [None, [Rot13Example()], [ZStandard()]])
     def test_read_write_shard_tensor(self, extensions) -> None:
@@ -243,7 +243,7 @@ class TestDistributedReshardOnLoad(ShardedTensorTestBase):
         return res
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_load_with_different_shard_plan(self) -> None:
         path = self.get_file_path()
@@ -358,7 +358,7 @@ class TestDistributedReshardOnLoad(ShardedTensorTestBase):
                     )
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_load_rowwise_to_colwise(self) -> None:
         path = self.get_file_path()
@@ -409,7 +409,7 @@ class TestDistributedReshardOnLoad(ShardedTensorTestBase):
             self.assertTrue(torch.allclose(store_tensor, load_tensor))
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_save_load_bytes(self) -> None:
         path = self.get_file_path()
@@ -428,7 +428,7 @@ class TestDistributedReshardOnLoad(ShardedTensorTestBase):
         self.assertEqual("string", state_dict_to_load["bytes1"])
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_switch_between_sharded_tensor_to_tensor(self) -> None:
         path = self.get_file_path()
@@ -520,7 +520,7 @@ class TestDistributedStateDictSaveLoadWithCaching(ShardedTensorTestBase):
         return 2
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     @with_temp_dir
     def test_read_write_shard_tensor(self) -> None:

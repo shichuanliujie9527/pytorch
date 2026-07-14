@@ -24,7 +24,7 @@ from torch.distributed.tensor import distribute_tensor, DTensor, Shard
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import (
     DTensorTestBase,
-    skip_if_lt_x_gpu,
+    skip_if_lt_x_devices,
     with_comms,
 )
 
@@ -35,7 +35,7 @@ class TestStateDictUtils(DTensorTestBase):
         return min(4, torch.accelerator.device_count())
 
     @with_comms
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     def test_gather_state_dict_dtensor(self):
         device_mesh = self.build_device_mesh()
         shard_spec = [Shard(0)]
@@ -52,7 +52,7 @@ class TestStateDictUtils(DTensorTestBase):
         self.assertEqual(gathered_state_dict["dtensor"].device.type, self.device_type)
 
     @with_comms
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_devices(4)
     def test_gather_with_cpu_and_ranks_only(self):
         device_mesh = self.build_device_mesh()
         shard_spec = [Shard(0)]
@@ -76,7 +76,7 @@ class TestStateDictUtils(DTensorTestBase):
             self.assertEqual(gathered_state_dict, {})
 
     @with_comms
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_devices(4)
     def test_cpu_and_ranks_only(self):
         device = torch.device(self.device_type)
         state_dict = {
@@ -94,7 +94,7 @@ class TestStateDictUtils(DTensorTestBase):
             self.assertEqual(cpu_state_dict, {})
 
     @with_comms
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_devices(4)
     def test_complicated_dict(self):
         def create_dtensor():
             device_mesh = self.build_device_mesh()
@@ -129,7 +129,7 @@ class TestStateDictUtils(DTensorTestBase):
         self.assertEqual(state_dict, _gather_state_dict(dist_state_dict))
 
     @with_comms
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     def test_create_cpu_state_dict(self):
         device = torch.device(self.device_type)
         rank = dist.get_rank()
@@ -242,7 +242,7 @@ class TestStateDictUtils(DTensorTestBase):
         _verify_weakref_finalize(cpu_state_dict)
 
     @with_comms
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     def test_state_dict_util_distribute_tensors(self):
         even_tensor = torch.randn(self.world_size, 2)
         uneven_tensor = torch.randn(1, 2)
@@ -273,7 +273,7 @@ class TestStateDictUtils(DTensorTestBase):
             self.assertEqual(local_v_full_tensor, ref_v[1])
 
     @with_comms
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     def test_cpu_offload_for_dtensor(self):
         device_mesh = init_device_mesh(self.device_type, mesh_shape=(self.world_size,))
         sd = {
