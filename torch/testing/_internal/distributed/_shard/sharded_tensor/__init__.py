@@ -7,6 +7,7 @@ import torch
 import torch.distributed as dist
 from torch.distributed import rpc
 from torch.testing._internal.common_distributed import (
+    ACCELERATOR_DIST_BACKENDS,
     MultiProcessTestCase,
     TEST_SKIPS,
     tp_transports,
@@ -33,7 +34,7 @@ class ShardedTensorTestBase(MultiProcessTestCase):
         )
 
         # set device for nccl pg for collectives
-        if backend == "nccl" or backend == "xccl":
+        if backend in ACCELERATOR_DIST_BACKENDS:
             torch.accelerator.set_device_index(self.rank)
 
     def init_rpc(self):

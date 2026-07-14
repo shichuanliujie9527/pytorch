@@ -821,12 +821,12 @@ class DTensorTestBase(DTensorTestMixin, MultiProcessTestCase):
             raise RuntimeError(f"Backend {backend} not supported!")
 
         device_id = None
-        if "nccl" in backend or "xccl" in backend:
-            # set device for nccl pg for collectives
-            # TODO: if users want to enable testing across hosts, we may need
-            # to change this part.
+        if requires_gpu:
+            # Set the per-rank device for accelerator collectives.
             torch.accelerator.set_device_index(self.rank)
-            # we only need to set device_id for nccl backend with eager init
+        if "nccl" in backend or "xccl" in backend:
+            # Keep eager device_id initialization limited to the backends that
+            # already support this behavior.
             device_id = (
                 torch.device(f"{self.device_type}:{self.rank}") if eager_init else None
             )
