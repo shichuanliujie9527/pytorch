@@ -235,11 +235,14 @@ class TestStateDictUtils(DTensorTestBase):
         _verify(cpu_state_dict)
         cpu_state_dict = _create_cpu_state_dict(state_dict, share_memory=True)
         _verify(cpu_state_dict)
-        cpu_state_dict = _create_cpu_state_dict(
-            state_dict, share_memory=True, pin_memory=True
-        )
-        _verify(cpu_state_dict)
-        _verify_weakref_finalize(cpu_state_dict)
+        # Registering an existing shared-memory allocation as pinned memory
+        # currently relies on CUDA's cudaHostRegister implementation.
+        if torch.cuda.is_available():
+            cpu_state_dict = _create_cpu_state_dict(
+                state_dict, share_memory=True, pin_memory=True
+            )
+            _verify(cpu_state_dict)
+            _verify_weakref_finalize(cpu_state_dict)
 
     @with_comms
     @skip_if_lt_x_gpu(2)
