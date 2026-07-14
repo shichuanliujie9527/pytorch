@@ -150,7 +150,12 @@ logger.setLevel(logging.INFO)
 
 ACCELERATOR_DIST_BACKENDS = ["nccl", "xccl", "hccl"]
 DDP_RANK_DEVICES = ["cuda", "xpu"]
-HAS_ACCELERATOR = TEST_CUDA or TEST_HPU or TEST_XPU
+HAS_ACCELERATOR = (
+    TEST_CUDA
+    or TEST_HPU
+    or TEST_XPU
+    or torch.accelerator.is_available()
+)
 
 
 class TestSkip(NamedTuple):
@@ -562,7 +567,7 @@ def requires_accelerator_dist_backend(backends=None):
         {
             "nccl": c10d.is_nccl_available,
             "xccl": c10d.is_xccl_available,
-            "hccl": lambda: TEST_HPU,
+            "hccl": lambda: TEST_HPU or c10d.is_backend_available("hccl"),
         }.get(backend, lambda: False)()
         for backend in backends
     )
