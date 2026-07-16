@@ -34,7 +34,7 @@ from torch.distributed.checkpoint.storage import WriteResult
 from torch.futures import Future
 from torch.testing._internal.common_distributed import (
     requires_accelerator_dist_backend,
-    skip_if_lt_x_gpu,
+    skip_if_lt_x_devices,
 )
 from torch.testing._internal.common_utils import run_tests, TEST_WITH_DEV_DBG_ASAN
 from torch.testing._internal.distributed._shard.sharded_tensor import (
@@ -81,7 +81,7 @@ class TestDistributedCheckpointing(ShardedTensorTestBase):
         return 2
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_tensor_metadata_with_missing_rank_spec(self) -> None:
         spec = ChunkShardingSpec(
@@ -98,7 +98,7 @@ class TestDistributedCheckpointing(ShardedTensorTestBase):
         self.assertEqual(1, len(st_md.chunks))
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_default_metadata(self) -> None:
         device = f"{device_type}:{dist.get_rank()}"
@@ -246,7 +246,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
         )
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_dummy_writer_works(self) -> None:
         state_dict = {
@@ -258,7 +258,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
         save_state_dict(state_dict, FaultyStorageWriter({}))
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(2)
+    @skip_if_lt_x_devices(2)
     @requires_accelerator_dist_backend()
     def test_dummy_reader_works(self) -> None:
         state_dict = {
@@ -323,7 +323,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
         self._test_dist_failure(_load, kwargs)
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_devices(4)
     @requires_accelerator_dist_backend()
     def test_save_error_handling(self) -> None:
         state_dict = {
@@ -357,7 +357,7 @@ class TestDistributedFailure(ShardedTensorTestBase):
         self._test_save(state_dict, fail_write_data_async=[0])
 
     @with_comms(init_rpc=False, backend=backend)
-    @skip_if_lt_x_gpu(4)
+    @skip_if_lt_x_devices(4)
     @requires_accelerator_dist_backend()
     def test_load_error_handling(self) -> None:
         state_dict = {
