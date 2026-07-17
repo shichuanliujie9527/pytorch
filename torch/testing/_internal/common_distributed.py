@@ -335,6 +335,23 @@ def skip_if_lt_x_gpu(x, *, allow_cpu=False):
     return decorator
 
 
+def skip_if_lt_x_devices(x):
+    """Skip if fewer than x accelerator devices are available."""
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if torch.accelerator.device_count() >= x:
+                return func(*args, **kwargs)
+            test_skip = TEST_SKIPS[f"multi-gpu-{x}"]
+            if not _maybe_handle_skip_if_lt_x_gpu(args, test_skip.message):
+                sys.exit(test_skip.exit_code)
+
+        return wrapper
+
+    return decorator
+
+
 def requires_world_size(n: int):
     """
     Decorator to request a specific world size for a test. The test harness can
