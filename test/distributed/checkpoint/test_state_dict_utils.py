@@ -1,6 +1,7 @@
 # Owner(s): ["oncall: distributed"]
 import copy
 import io
+import unittest
 
 import torch
 import torch.distributed as dist
@@ -21,6 +22,7 @@ from torch.distributed._state_dict_utils import (
 )
 from torch.distributed.device_mesh import init_device_mesh
 from torch.distributed.tensor import distribute_tensor, DTensor, Shard
+from torch.testing._internal.common_cuda import TEST_CUDA
 from torch.testing._internal.common_utils import run_tests
 from torch.testing._internal.distributed._tensor.common_dtensor import (
     DTensorTestBase,
@@ -128,6 +130,10 @@ class TestStateDictUtils(DTensorTestBase):
         }
         self.assertEqual(state_dict, _gather_state_dict(dist_state_dict))
 
+    @unittest.skipIf(
+        not TEST_CUDA,
+        "The shared and pinned CPU state dict path requires CUDA",
+    )
     @with_comms
     @skip_if_lt_x_gpu(2)
     def test_create_cpu_state_dict(self):
