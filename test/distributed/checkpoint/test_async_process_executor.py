@@ -16,6 +16,7 @@ from torch.distributed.checkpoint.storage import StorageWriter
 from torch.distributed.elastic.utils.distributed import get_free_port
 from torch.testing._internal.common_distributed import skip_if_win32
 from torch.testing._internal.common_utils import (
+    HardwareClassification,
     retry_on_connect_failures,
     run_tests,
     TEST_WITH_DEV_DBG_ASAN,
@@ -108,6 +109,8 @@ class TestStorageWriter(StorageWriter):
 
 
 class TestAsyncProcessExecutor(DTensorTestBase):
+    hw_classification = HardwareClassification.ACCELERATOR
+
     """Test suite for async checkpoint process executor error handling using public APIs."""
 
     @with_comms
@@ -169,6 +172,8 @@ class TestAsyncProcessExecutor(DTensorTestBase):
 
 
 class TestAsyncProcessExecutorPrefixStore(TestCase):
+    hw_classification = HardwareClassification.GENERIC
+
     @skip_if_win32()
     @retry_on_connect_failures
     def test_checkpoint_save_with_prefix_store_enabled(self) -> None:
@@ -211,6 +216,8 @@ class TestAsyncProcessExecutorPrefixStore(TestCase):
 
 
 class TestProcessGroupInitInfo(DTensorTestBase):
+    hw_classification = HardwareClassification.ACCELERATOR
+
     """Test suite for _ProcessGroupInitInfo."""
 
     @with_comms

@@ -28,9 +28,9 @@ from torch.testing._internal.common_distributed import (
     at_least_x_gpu,
     HAS_ACCELERATOR,
     MultiProcContinuousTest,
-    requires_accelerator_dist_backend,
 )
 from torch.testing._internal.common_utils import (
+    HardwareClassification,
     run_tests,
     skip_but_pass_in_sandcastle_if,
     TestCase,
@@ -205,6 +205,8 @@ def _test_pg_transport_with_sharded_tensor(self, device) -> None:
 
 
 class PgTransportCPU(MultiProcContinuousTest):
+    hw_classification = HardwareClassification.CPU
+
     world_size = 8
     timeout: timedelta = timedelta(seconds=20)
 
@@ -232,6 +234,8 @@ class PgTransportCPU(MultiProcContinuousTest):
 
 @skip_but_pass_in_sandcastle_if(not at_least_x_gpu(2), "test requires 2+ accelerators")
 class PgTransportGPU(MultiProcContinuousTest):
+    hw_classification = HardwareClassification.ACCELERATOR
+
     world_size = 2
     timeout: timedelta = timedelta(seconds=20)
 
@@ -243,21 +247,18 @@ class PgTransportGPU(MultiProcContinuousTest):
     def device(self) -> torch.device:
         return torch.device(f"{self.device_type()}:{self.rank}")
 
-    @requires_accelerator_dist_backend()
     @skip_but_pass_in_sandcastle_if(
         not at_least_x_gpu(2), "test requires 2+ accelerators"
     )
     def test_pg_transport(self) -> None:
         _test_pg_transport(self, self.device)
 
-    @requires_accelerator_dist_backend()
     @skip_but_pass_in_sandcastle_if(
         not at_least_x_gpu(2), "test requires 2+ accelerators"
     )
     def test_pg_transport_with_mixed_content(self) -> None:
         _test_pg_transport_with_mixed_content(self, self.device)
 
-    @requires_accelerator_dist_backend()
     @skip_but_pass_in_sandcastle_if(
         not at_least_x_gpu(2), "test requires 2+ accelerators"
     )
@@ -266,6 +267,8 @@ class PgTransportGPU(MultiProcContinuousTest):
 
 
 class TestCastTensor(TestCase):
+    hw_classification = HardwareClassification.GENERIC
+
     def test_cast_tensor_different_dtypes(self):
         """Test casting tensors of different dtypes."""
         dtypes = [torch.float32, torch.float64, torch.int32, torch.int64, torch.bool]
@@ -310,6 +313,8 @@ class TestCastTensor(TestCase):
 
 
 class TestPrepareTensor(TestCase):
+    hw_classification = HardwareClassification.GENERIC
+
     def test_prepare_tensor_basic(self):
         """Test basic tensor preparation."""
         tensor = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
@@ -357,6 +362,8 @@ class TestPrepareTensor(TestCase):
 
 
 class TestPrepareStateDict(TestCase):
+    hw_classification = HardwareClassification.GENERIC
+
     def test_prepare_state_dict_basic(self):
         """Test basic state dict preparation."""
         state_dict = {"weight": torch.randn(3, 4), "bias": torch.randn(4)}
@@ -413,6 +420,8 @@ class TestPrepareStateDict(TestCase):
 
 
 class TestPGTransportMocked(TestCase):
+    hw_classification = HardwareClassification.GENERIC
+
     def setUp(self):
         super().setUp()
         self.device = torch.device("cpu")
@@ -572,6 +581,8 @@ class TestPGTransportMocked(TestCase):
 
 
 class TestPGTransportEdgeCases(TestCase):
+    hw_classification = HardwareClassification.GENERIC
+
     def setUp(self):
         super().setUp()
         self.device = torch.device("cpu")

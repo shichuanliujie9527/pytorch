@@ -32,11 +32,12 @@ from torch.distributed.checkpoint.planner import (
 )
 from torch.distributed.checkpoint.storage import WriteResult
 from torch.futures import Future
-from torch.testing._internal.common_distributed import (
-    requires_accelerator_dist_backend,
-    skip_if_lt_x_gpu,
+from torch.testing._internal.common_distributed import skip_if_lt_x_gpu
+from torch.testing._internal.common_utils import (
+    HardwareClassification,
+    run_tests,
+    TEST_WITH_DEV_DBG_ASAN,
 )
-from torch.testing._internal.common_utils import run_tests, TEST_WITH_DEV_DBG_ASAN
 from torch.testing._internal.distributed._shard.sharded_tensor import (
     ShardedTensorTestBase,
     with_comms,
@@ -76,13 +77,14 @@ class TestModule(torch.nn.Module):
 
 
 class TestDistributedCheckpointing(ShardedTensorTestBase):
+    hw_classification = HardwareClassification.ACCELERATOR
+
     @property
     def world_size(self) -> int:
         return 2
 
     @with_comms(init_rpc=False, backend=backend)
     @skip_if_lt_x_gpu(2)
-    @requires_accelerator_dist_backend()
     def test_tensor_metadata_with_missing_rank_spec(self) -> None:
         spec = ChunkShardingSpec(
             dim=0,
@@ -99,7 +101,6 @@ class TestDistributedCheckpointing(ShardedTensorTestBase):
 
     @with_comms(init_rpc=False, backend=backend)
     @skip_if_lt_x_gpu(2)
-    @requires_accelerator_dist_backend()
     def test_default_metadata(self) -> None:
         device = f"{device_type}:{dist.get_rank()}"
         spec = ChunkShardingSpec(
@@ -237,6 +238,8 @@ class FaultyStorageReader(TestStorageBase, StorageReader):
 
 
 class TestDistributedFailure(ShardedTensorTestBase):
+    hw_classification = HardwareClassification.ACCELERATOR
+
     def get_spec(self):
         return ChunkShardingSpec(
             dim=0,
@@ -247,7 +250,6 @@ class TestDistributedFailure(ShardedTensorTestBase):
 
     @with_comms(init_rpc=False, backend=backend)
     @skip_if_lt_x_gpu(2)
-    @requires_accelerator_dist_backend()
     def test_dummy_writer_works(self) -> None:
         state_dict = {
             "sharded": sharded_tensor.rand(self.get_spec(), 20, 20),
@@ -259,7 +261,6 @@ class TestDistributedFailure(ShardedTensorTestBase):
 
     @with_comms(init_rpc=False, backend=backend)
     @skip_if_lt_x_gpu(2)
-    @requires_accelerator_dist_backend()
     def test_dummy_reader_works(self) -> None:
         state_dict = {
             "sharded": sharded_tensor.rand(self.get_spec(), 20, 20),
@@ -324,7 +325,6 @@ class TestDistributedFailure(ShardedTensorTestBase):
 
     @with_comms(init_rpc=False, backend=backend)
     @skip_if_lt_x_gpu(4)
-    @requires_accelerator_dist_backend()
     def test_save_error_handling(self) -> None:
         state_dict = {
             "sharded": sharded_tensor.rand(self.get_spec(), 20, 20),
@@ -358,7 +358,6 @@ class TestDistributedFailure(ShardedTensorTestBase):
 
     @with_comms(init_rpc=False, backend=backend)
     @skip_if_lt_x_gpu(4)
-    @requires_accelerator_dist_backend()
     def test_load_error_handling(self) -> None:
         state_dict = {
             "sharded": sharded_tensor.rand(self.get_spec(), 20, 20),
