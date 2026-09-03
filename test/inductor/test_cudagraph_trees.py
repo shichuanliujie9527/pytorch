@@ -12,6 +12,7 @@ import unittest
 import warnings
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 import torch
 import torch._dynamo.config as dynamo_config
@@ -20,7 +21,11 @@ from torch._dynamo.backends.debugging import aot_eager_decomp_partition_with_mod
 from torch._dynamo.utils import counters
 from torch._functorch._aot_autograd.autograd_cache import AOTAutogradCache
 from torch._inductor import config
-from torch._inductor.codecache import FxGraphCache
+from torch._inductor.codecache import (
+    FxGraphCache,
+    FxGraphCachePickler,
+    FxGraphHashDetails,
+)
 from torch._inductor.compile_fx import compile_fx_inner
 from torch._inductor.cudagraph_trees import (
     AliasesPriorGraphOutput,
@@ -6447,6 +6452,60 @@ if HAS_CUDA_AND_TRITON:
             super().tearDown()
             torch._dynamo.reset()
             self._stack.close()
+
+        def test_additional_device_types_gate_non_cuda_devices(self):
+            """Only a policy that supports the device relaxes the Inductor gate."""
+            from unittest import mock
+
+            from torch._inductor import cudagraph_utils
+            from torch._inductor.cudagraph_utils import CUDAGraphPolicy
+
+            device_type = torch._C._get_privateuse1_backend_name()
+            mapping = {torch.device(device_type): torch.fx.Graph().placeholder("x")}
+
+            class AcceptPrivateUse1(CUDAGraphPolicy):
+                def additional_device_types(self) -> tuple[str, ...]:
+                    return (device_type,)
+
+            check = cudagraph_utils.check_multiple_devices_or_any_cpu_nodes
+            # The shared helper (also used by the Dynamo cudagraphs backend)
+            # and the base policy stay CUDA-only.
+            self.assertIsNotNone(check(dict(mapping)))
+            self.assertIsNotNone(check(dict(mapping), policy=CUDAGraphPolicy()))
+            self.assertIsNone(check(dict(mapping), policy=AcceptPrivateUse1()))
+
+            # The Inductor caller forwards config.cudagraph_policy.
+            with (
+                mock.patch.object(
+                    cudagraph_utils,
+                    "check_caching_allocator_for_cudagraphs",
+                    return_value=None,
+                ),
+                config.patch("cudagraph_policy", AcceptPrivateUse1()),
+            ):
+                self.assertIsNone(
+                    cudagraph_utils.check_lowering_disable_cudagraph(dict(mapping))
+                )
+
+        def test_policy_device_types_affect_fx_graph_cache_key(self):
+            from torch._inductor.cudagraph_utils import CUDAGraphPolicy
+
+            device_type = torch._C._get_privateuse1_backend_name()
+            gm = torch.fx.symbolic_trace(lambda x: x + 1)
+            example_inputs = [torch.ones(1)]
+
+            class AcceptPrivateUse1(CUDAGraphPolicy):
+                def additional_device_types(self) -> tuple[str, ...]:
+                    return (device_type,)
+
+            def cache_key(policy: Any) -> str:
+                with config.patch({"cudagraph_policy": policy}):
+                    details = FxGraphHashDetails(gm, example_inputs, cast(Any, {}), [])
+                return FxGraphCachePickler(gm).get_key(details)
+
+            no_policy_key = cache_key(None)
+            self.assertEqual(no_policy_key, cache_key(CUDAGraphPolicy()))
+            self.assertNotEqual(no_policy_key, cache_key(AcceptPrivateUse1()))
 
         def test_policy_cudagraphify_called(self):
             """Custom policy's cudagraphify is called instead of the default."""

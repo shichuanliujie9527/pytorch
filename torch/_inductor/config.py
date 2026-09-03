@@ -3038,8 +3038,8 @@ _save_config_ignore: list[str] = [
     "post_grad_custom_post_pass",
     "_fuse_ddp_communication_passes",
     "_pre_fusion_custom_pass",
-    # CUDAGraphPolicy objects are not picklable and only affect
-    # post_compile wrapping, not compiled code itself.
+    # CUDAGraphPolicy objects may not be picklable. The lowering-relevant
+    # additional device types are hashed explicitly by FxGraphHashDetails.
     "cudagraph_policy",
 ]
 
@@ -3065,7 +3065,8 @@ _cache_config_ignore_prefix: list[str] = [
     "pre_grad_custom_pass",
     "_fuse_ddp_communication_passes",
     "_pre_fusion_custom_pass",
-    # CUDAGraphPolicy only affects post_compile, not compiled output
+    # The policy object is dynamic; lowering-relevant device types are hashed
+    # explicitly by FxGraphHashDetails.
     "cudagraph_policy",
     # tests assume that changes here don't invalidate cache
     "force_disable_cudagraph_TESTING_ONLY",

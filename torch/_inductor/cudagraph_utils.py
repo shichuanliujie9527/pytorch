@@ -145,6 +145,19 @@ class CUDAGraphPolicy:
         """
         return output_code
 
+    def additional_device_types(self) -> tuple[str, ...]:
+        """Non-CUDA device types that this policy can wrap.
+
+        Inductor's lowering-time check always admits CUDA. A policy that
+        provides graph capture for another backend returns its device type
+        here. The returned values must be stable because they participate in
+        the FX graph cache key. The standalone Dynamo ``cudagraphs`` backend
+        does not consult the policy and stays CUDA-only.
+
+        Default: no additional device types.
+        """
+        return ()
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class FunctionID:
@@ -342,6 +355,8 @@ def _get_use_stack_trace(node: torch.fx.Node) -> str | None:
 
 def check_multiple_devices_or_any_cpu_nodes(
     device_node_mapping: dict[torch.device, torch.fx.Node],
+    *,
+    policy: CUDAGraphPolicy | None = None,
 ) -> str | None:
     # meta tensors are supported since there is no compute
     device_node_mapping.pop(torch.device("meta"), None)
@@ -358,11 +373,14 @@ def check_multiple_devices_or_any_cpu_nodes(
 
         return format_default_skip_message(msg)
 
-    if (
-        len(device_node_mapping) == 1
-        and next(iter(device_node_mapping.keys())).type == "cuda"
-    ):
-        return None
+    # Only the Inductor lowering path passes a policy; the standalone Dynamo
+    # cudagraphs backend calls this helper without one and stays CUDA-only.
+    if len(device_node_mapping) == 1:
+        device = next(iter(device_node_mapping.keys()))
+        if device.type == "cuda" or (
+            policy is not None and device.type in policy.additional_device_types()
+        ):
+            return None
 
     keys_repr = (repr(key) for key in device_node_mapping)
     return format_default_skip_message(f"multiple devices: {', '.join(keys_repr)}")
@@ -393,7 +411,9 @@ def check_lowering_disable_cudagraph(
 ) -> str | None:
     return (
         check_caching_allocator_for_cudagraphs()
-        or check_multiple_devices_or_any_cpu_nodes(device_node_mapping)
+        or check_multiple_devices_or_any_cpu_nodes(
+            device_node_mapping, policy=config.cudagraph_policy
+        )
     )
 
 

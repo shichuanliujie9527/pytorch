@@ -1641,6 +1641,13 @@ class FxGraphHashDetails:
                 ):
                     self.cudagraph_annotation = annotation
 
+        policy = config.cudagraph_policy
+        self.cudagraph_policy_additional_device_types = (
+            tuple(sorted(policy.additional_device_types()))
+            if policy is not None
+            else ()
+        )
+
         # Also hash on various system info (including the triton compiler version).
         self.torch_version = torch_key()
         self.system_info = CacheBase.get_system()
