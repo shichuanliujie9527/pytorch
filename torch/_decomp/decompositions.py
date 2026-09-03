@@ -352,7 +352,7 @@ def log_sigmoid_backward(grad_output: Tensor, self: Tensor, buffer: Tensor) -> T
     max_deriv = torch.where(in_negative, 1, 0)
     sign = torch.where(in_negative, 1, -1)
     # On CPU, forward saves buffer = exp(-|x|); reuse it to match the native kernel.
-    # On CUDA/XPU, buffer is empty so we recompute.
+    # On other devices, buffer is empty so we recompute.
     z = buffer if buffer.numel() > 0 else torch.exp(-torch.abs(self))
     return grad_output * (max_deriv - sign * (z / (1 + z)))
 
@@ -3557,10 +3557,12 @@ def _index_copy(
 def log_sigmoid_forward(self: Tensor) -> tuple[Tensor, Tensor]:
     min = torch.minimum(self.new_zeros(()), self)
     z = torch.exp(-torch.abs(self))
-    if self.is_cuda or self.is_xpu:
-        buffer = self.new_zeros((0,))
-    else:
+    # Only the CPU kernel saves buffer = exp(-|x|) for backward; CUDA/XPU/MPS and
+    # out-of-tree backends return an empty buffer. Meta keeps the CPU convention.
+    if self.is_cpu or self.is_meta:
         buffer = z
+    else:
+        buffer = self.new_zeros((0,))
     return min - torch.log1p(z), buffer
 
 
