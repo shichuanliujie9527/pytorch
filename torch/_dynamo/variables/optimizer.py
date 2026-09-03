@@ -183,14 +183,19 @@ class OptimizerVariable(UserDefinedObjectVariable):
     def _set_capturable(self, tx: "InstructionTranslatorBase") -> None:
         from . import LazyVariableTracker
 
-        # We only set capturable if params are on cuda
-        # and the state is not initialized
+        # We only set capturable if params are on a device that the optimizer
+        # supports for capturable (see _get_capturable_supported_devices) and
+        # the state is not initialized
         def safe_to_set_capturable(group: dict[str, Any]) -> bool:
             all_uninitialized = True
             all_gpu = True
 
             for p in group.get("params", []):
-                all_gpu &= p.is_cuda or p.is_xpu
+                all_gpu &= (
+                    p.is_cuda
+                    or p.is_xpu
+                    or p.device.type == torch._C._get_privateuse1_backend_name()
+                )
                 all_uninitialized &= p not in self.value.state
 
             return "capturable" in group and all_uninitialized and all_gpu
